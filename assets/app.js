@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const API_URL = "https://api.quotable.io/quotes/random";
+  const API_URL = "https://quotable.mikemcl.workers.dev/random";
   const STORAGE_KEY = "quoteGen:favorites:v1";
   const RATE_LIMIT_COOLDOWN_MS = 12_000;
 
