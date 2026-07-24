@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const API_URL = "https://quotable.mikemcl.workers.dev/random";
+  const API_URL = "https://api.quotable.kurokeita.dev/api/quotes/random";
   const STORAGE_KEY = "quoteGen:favorites:v1";
   const RATE_LIMIT_COOLDOWN_MS = 12_000;
 
@@ -176,24 +176,37 @@
       }
 
       const data = await res.json();
-      const q = Array.isArray(data) ? data[0] : data;
+      const q = data && typeof data === "object" ? data.quote : null;
       if (!q || typeof q !== "object") {
         setStatus("Unexpected API response.", "error");
         return null;
       }
-      if (typeof q._id !== "string" || typeof q.content !== "string" || typeof q.author !== "string") {
+
+      // The API nests author/tags as objects; flatten to the shape the app stores.
+      const author = q.author && typeof q.author === "object" ? q.author : {};
+      const tags = Array.isArray(q.tags)
+        ? q.tags.map((t) => (t && typeof t === "object" ? t.name : t)).filter((t) => typeof t === "string")
+        : [];
+
+      const quote = {
+        _id: q.id,
+        content: q.content,
+        author: author.name,
+        authorSlug: typeof author.slug === "string" ? author.slug : undefined,
+        tags: tags.length > 0 ? tags : undefined,
+      };
+
+      if (
+        typeof quote._id !== "string" ||
+        typeof quote.content !== "string" ||
+        typeof quote.author !== "string"
+      ) {
         setStatus("Quote data missing required fields.", "error");
         return null;
       }
 
       setStatus("");
-      return {
-        _id: q._id,
-        content: q.content,
-        author: q.author,
-        authorSlug: typeof q.authorSlug === "string" ? q.authorSlug : undefined,
-        tags: Array.isArray(q.tags) ? q.tags.filter((t) => typeof t === "string") : undefined,
-      };
+      return quote;
     } catch (err) {
       if (err && typeof err === "object" && "name" in err && err.name === "AbortError") {
         setStatus("Request timed out. Try again.", "error");

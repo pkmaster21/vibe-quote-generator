@@ -6,27 +6,42 @@ This document records the API research and the key product/engineering decisions
 
 ### Endpoints
 
-Quotable is hosted at:
-
-- **Base URL**: `https://api.quotable.io`
-
-For random quotes, the documentation describes two related endpoints:
+Quotable was originally hosted at `https://api.quotable.io`, with two random-quote endpoints:
 
 - **Deprecated**: `GET /random` (returns a single quote object)
 - **Preferred**: `GET /quotes/random` (returns an **array** of quote objects; default `limit=1`)
 
-The app uses `GET https://api.quotable.io/quotes/random` and reads the first element of the returned array.
+**That host is now dead.** The project is unmaintained and its TLS certificate has expired, so browsers refuse the connection before any response is received. The app therefore uses the community mirror:
+
+- **Base URL**: `https://api.quotable.kurokeita.dev`
+- **Endpoint**: `GET /api/quotes/random`
+
+It serves the same dataset with `Access-Control-Allow-Origin: *`.
 
 ### Response shape used by the app
 
-The quote objects documented for random quotes include:
+The mirror wraps a single quote under a `quote` key and nests author/tags as objects:
 
-- `_id` (string) — unique identifier
-- `content` (string) — quote text
-- `author` (string) — author name
-- `authorSlug` (string) — author slug
-- `length` (number) — character count
-- `tags` (string[]) — tag names
+```json
+{
+  "quote": {
+    "id": "KgRUNb1xa6",
+    "content": "You cannot be lonely if you like the person you're alone with.",
+    "tags": [{ "id": "unDK8Rkf6F", "name": "Famous Quotes" }],
+    "author": { "id": "Waw7SWVnlw", "name": "Wayne Dyer", "slug": "wayne-dyer" }
+  }
+}
+```
+
+`fetchRandomQuote` flattens this into the app's internal record before validating it:
+
+- `_id` ← `quote.id`
+- `content` ← `quote.content`
+- `author` ← `quote.author.name`
+- `authorSlug` ← `quote.author.slug`
+- `tags` ← `quote.tags[].name`
+
+Keeping the internal shape identical to the old Quotable format means `localStorage`, deduping, and the favorites drawer are unaffected by the API swap.
 
 In the UI, the app displays:
 
@@ -36,14 +51,14 @@ In the UI, the app displays:
 
 ### Rate limiting
 
-The upstream docs mention a **rate limit of 180 requests per minute per IP**, with HTTP **429** for limit violations. The implementation includes:
+Quotable documented a **rate limit of 180 requests per minute per IP**, with HTTP **429** for limit violations. The mirror does not publish its own limit, so the app keeps the same defensive handling:
 
 - a user-facing “rate limited” status message
 - a short client-side cooldown (to discourage rapid retries)
 
 ### Reliability notes
 
-While searching, I encountered GitHub issues/discussions indicating occasional downtime for `api.quotable.io`. Because of this, the app treats the network as unreliable:
+The original `api.quotable.io` went from occasional downtime to permanent failure (expired certificate), which is exactly the risk a third-party API carries. The app treats the network as unreliable:
 
 - request timeout (10 seconds)
 - clear error messaging

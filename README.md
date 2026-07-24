@@ -1,10 +1,10 @@
 # Vibe Quote Generator (static, no-build)
 
-A no-build, no-framework quote generator designed for **GitHub Pages**. It fetches random quotes from **Quotable**, lets you **copy** them, and lets you save a **favorites** list (stored in your browser via `localStorage`).
+A no-build, no-framework quote generator designed for **GitHub Pages**. It fetches random quotes from a **Quotable** mirror, lets you **copy** them, and lets you save a **favorites** list (stored in your browser via `localStorage`).
 
 ## What’s included
 
-- **Random quote** from `api.quotable.io`
+- **Random quote** from `api.quotable.kurokeita.dev`
 - **Author + quote text** display
 - **New Quote** button
 - **Copy** button (uses the Clipboard API when available, with a fallback)
@@ -48,6 +48,7 @@ npx serve .
 
 ## Notes
 
-- Quotable has rate limiting (the app shows a cooldown message if it receives HTTP `429`).
+- The original `api.quotable.io` is no longer maintained — its TLS certificate has expired, so browsers block it outright. The app uses the community mirror `api.quotable.kurokeita.dev` (same dataset, CORS enabled).
+- The API may rate limit (the app shows a cooldown message if it receives HTTP `429`).
 - Favorites are local to your browser. Clearing site data / using another device won’t carry them over.
 
